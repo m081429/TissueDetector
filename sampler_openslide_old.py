@@ -195,15 +195,10 @@ def create_patch_deprecated(svs, patch_sub_size, patch_dir, samp, tf_output, pat
 def create_binary_mask_new(rgb2lab_thresh,svs_file,patch_dir,samp):			
     #img = Image.open(top_level_file_path)
     OSobj = openslide.OpenSlide(svs_file)
-    #toplevel=OSobj.level_count-1
-    #patch_sub_size_x=OSobj.level_dimensions[toplevel][0]
-    #patch_sub_size_y=OSobj.level_dimensions[toplevel][1]
-    #img = OSobj.read_region((0,0), toplevel, (patch_sub_size_x, patch_sub_size_y))
-    divisor = int(OSobj.level_dimensions[0][0]/500)
-    patch_sub_size_x=int(OSobj.level_dimensions[0][0]/divisor)
-    patch_sub_size_y=int(OSobj.level_dimensions[0][1]/divisor)
-    img = OSobj.get_thumbnail((patch_sub_size_x, patch_sub_size_y))
-    toplevel=[patch_sub_size_x,patch_sub_size_y,divisor]
+    toplevel=OSobj.level_count-1
+    patch_sub_size_x=OSobj.level_dimensions[toplevel][0]
+    patch_sub_size_y=OSobj.level_dimensions[toplevel][1]
+    img = OSobj.read_region((0,0), toplevel, (patch_sub_size_x, patch_sub_size_y))
     img = img.convert('RGB')
     np_img = np.array(img)
     #binary_img= (np_img==[254,0,0] or np_img==[255,0,0]).all(axis=2)
@@ -266,7 +261,7 @@ def calc_patches_cord(list_binary_img,patch_level,svs_file,patch_dir,samp,patch_
     patch_stop_x_list = []
     patch_start_y_list = []
     patch_stop_y_list = []
-    #bin_mask_level=toplevel
+    bin_mask_level=toplevel
     #print(bin_mask_level)
     #print(dict_properties['increment'])
     #sys.exit(0)
@@ -285,12 +280,12 @@ def calc_patches_cord(list_binary_img,patch_level,svs_file,patch_dir,samp,patch_
         '''Iterating through y coordinate'''
         start_y = miny
         while start_y + patch_size < maxy:
-            current_x=int((start_x*OSobj.level_downsamples[patch_level])/toplevel[2])
-            current_y=int((start_y*OSobj.level_downsamples[patch_level])/toplevel[2])
+            current_x=int((start_x*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+            current_y=int((start_y*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
             tmp_x = start_x  + int(patch_size)
             tmp_y = start_y  + int(patch_size)
-            current_x_stop=int((tmp_x*OSobj.level_downsamples[patch_level])/toplevel[2])
-            current_y_stop=int((tmp_y*OSobj.level_downsamples[patch_level])/toplevel[2])
+            current_x_stop=int((tmp_x*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+            current_y_stop=int((tmp_y*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
             total_num_patches=total_num_patches+1
             #flag=0
             #for m in range(current_x,current_x_stop+1):
@@ -317,22 +312,22 @@ def calc_patches_cord(list_binary_img,patch_level,svs_file,patch_dir,samp,patch_
     return patch_start_x_list,patch_stop_x_list,patch_start_y_list,patch_stop_y_list
 
 def create_summary_img(patch_start_x_list,patch_stop_x_list,patch_start_y_list,patch_stop_y_list,samp,patch_dir,toplevel,patch_level,svs_file):
-    #bin_mask_level = toplevel
+    bin_mask_level = toplevel
     OSobj = openslide.OpenSlide(svs_file)
     poly_included = []
     poly_excluded = []
     name = ""
     for i in range(0,len(patch_stop_x_list),1):
-        x1=int((patch_start_x_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        x2=int((patch_stop_x_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        y1=int((patch_start_y_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        y2=int((patch_stop_y_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
+        x1=int((patch_start_x_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        x2=int((patch_stop_x_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        y1=int((patch_start_y_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        y2=int((patch_stop_y_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
         poly_included.append(Polygon([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)]))
 
-    patch_sub_size_x=toplevel[0]
-    patch_sub_size_y=toplevel[1]
-    #img_patch = OSobj.read_region((0,0), toplevel, (patch_sub_size_x, patch_sub_size_y))
-    img_patch = OSobj.get_thumbnail((patch_sub_size_x, patch_sub_size_y))
+    patch_sub_size_x=OSobj.level_dimensions[toplevel][0]
+    patch_sub_size_y=OSobj.level_dimensions[toplevel][1]
+    img_patch = OSobj.read_region((0,0), toplevel, (patch_sub_size_x, patch_sub_size_y))
+    
     np_img = np.array(img_patch)
     patch_sub_size_y = np_img.shape[0]
     patch_sub_size_x = np_img.shape[1]
@@ -385,17 +380,17 @@ def create_tfrecord(patch_start_x_list,patch_stop_x_list,patch_start_y_list,patc
         record = image_to_tfexample_chek2(imgByteArr, image_format, int(height), int(width), image_name, mut_type)
         tf_writer.write(record.SerializeToString())
         
-        x1=int((patch_start_x_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        x2=int((patch_stop_x_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        y1=int((patch_start_y_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
-        y2=int((patch_stop_y_list[i]*OSobj.level_downsamples[patch_level])/toplevel[2])
+        x1=int((patch_start_x_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        x2=int((patch_stop_x_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        y1=int((patch_start_y_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
+        y2=int((patch_stop_y_list[i]*OSobj.level_downsamples[patch_level])/OSobj.level_downsamples[toplevel])
         poly_included.append(Polygon([(x1, y1), (x2, y1), (x2, y2), (x1, y2), (x1, y1)]))
        
     tf_writer.close()
     
-    patch_sub_size_x=toplevel[0]
-    patch_sub_size_y=toplevel[1]
-    img_patch = OSobj.get_thumbnail((patch_sub_size_x, patch_sub_size_y))
+    patch_sub_size_x=OSobj.level_dimensions[toplevel][0]
+    patch_sub_size_y=OSobj.level_dimensions[toplevel][1]
+    img_patch = OSobj.read_region((0,0), toplevel, (patch_sub_size_x, patch_sub_size_y))
     
     np_img = np.array(img_patch)
     patch_sub_size_y = np_img.shape[0]
