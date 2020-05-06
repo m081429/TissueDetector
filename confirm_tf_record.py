@@ -16,7 +16,7 @@ num=0
 for i in tf_files:
     if 'tfrecord' in i:
         tfrecord=tfrecord_dir+'/'+i
-        print("Input",tfrecord)
+        #print("Input",tfrecord)
         #sys.exit(0)
         try:
             for example in tf.python_io.tf_record_iterator(tfrecord):
@@ -30,7 +30,7 @@ for i in tf_files:
                         #print(k, "Skipping...")
                         #stream=io.BytesIO(v.bytes_list.value[0])
                         #img = Image.open(stream)
-                        #num+=1
+                        num+=1
                         #img.save("sampletf_"+str(num)+".png", "png")
                         z=1
                     elif k == 'image_raw':
@@ -48,12 +48,12 @@ for i in tf_files:
                                 z1=z1.decode("utf-8")
                             #if k=='phenotype/subtype':
                                 #z2=v.int64_list.value[0]
-                            if k=='label':
+                            if k=='phenotype/muttype':
                                 z3=v.bytes_list.value[0]
                                 z3=z3.decode("utf-8")							
                         except:
                             #print(k, v.int64_list.value[0])
-                            if k=='label':
+                            if k=='phenotype/muttype':
                                 z3=v.int64_list.value[0]
                 print(i+"\t"+str(z1)+"\t"+str(z3))	
                 #sys.exit(0)
